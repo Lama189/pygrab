@@ -1,0 +1,45 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: pygrab-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ch_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app_network
+
+  migrations:
+    image: amacneil/dbmate:latest
+    container_name: pygrab-migrations
+    volumes:
+      - ./migrations:/migrations
+    environment:
+      DATABASE_URL: clickhouse+http://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@clickhouse:8123/${CLICKHOUSE_DB}
+      DBMATE_MIGRATIONS_DIR: /migrations
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - app_network
+
+volumes:
+  ch_data:
+
+networks:
+  app_network:
+    driver: bridge
