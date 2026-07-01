@@ -31,9 +31,33 @@ services:
     environment:
       DATABASE_URL: clickhouse+http://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@clickhouse:8123/${CLICKHOUSE_DB}
       DBMATE_MIGRATIONS_DIR: /migrations
+    command: ["up"]
     depends_on:
       clickhouse:
         condition: service_healthy
+    networks:
+      - app_network
+
+  pygrab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pygrab_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      - CLICKHOUSE_HOST=clickhouse 
+      - CLICKHOUSE_PORT=8123
+      - BATCH_SIZE=2000           
+      - FLUSH_INTERVAL_SECS=2.0
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
     networks:
       - app_network
 
