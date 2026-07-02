@@ -5,7 +5,7 @@ from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
 
 
 def get_log_buffer(request: Request) -> LogBuffer:
-    return request.app.state.deps.lo0g_buffer
+    return request.app.state.deps.log_buffer
 
 def get_log_repository(request: Request) -> ClickHouseLogRepository:
     return request.app.state.deps.log_repository

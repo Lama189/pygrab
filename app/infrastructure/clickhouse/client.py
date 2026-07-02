@@ -1,11 +1,10 @@
 import clickhouse_connect
 
-from app.core.config import Settings
-
+from app.core.config import AppConfig
 
 
 class ClickHouseClient:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: AppConfig) -> None:
         self._settings = settings
         self._client = None
 

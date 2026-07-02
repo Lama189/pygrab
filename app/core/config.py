@@ -4,7 +4,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings): 
+class AppConfig(BaseSettings):
     clickhouse_db: str = ""
     clickhouse_user: str = ""
     clickhouse_password: str = ""
@@ -14,6 +14,14 @@ class Settings(BaseSettings):
     batch_size: int = 1000
     flush_interval_secs: int = 2
 
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
+class DockerConfig(BaseSettings):
     docker_enabled: bool = True
     docker_socket: str = "unix:///var/run/docker.sock"
     docker_containers: List[str] | None = None
@@ -33,5 +41,10 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings() -> Settings:
-    return Settings()
+def get_app_config() -> AppConfig:
+    return AppConfig()
+
+
+@lru_cache
+def get_docker_config() -> DockerConfig:
+    return DockerConfig()

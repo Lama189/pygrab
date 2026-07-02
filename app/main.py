@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from aiodocker import Docker
 
-from app.core.config import get_settings, Settings
+from app.core.config import get_app_config, get_docker_config, AppConfig, DockerConfig
 from app.infrastructure.clickhouse.client import ClickHouseClient
 from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
 from app.application.logs.buffer import LogBuffer
@@ -18,53 +18,63 @@ logger = logging.getLogger(__name__)
 
 
 class AppDependencies:
-    def __init__(self, settings: Settings):
-        self.ch_client_wrapper = ClickHouseClient(settings=settings)
+    def __init__(self, config: AppConfig):
+        self.ch_client_wrapper = ClickHouseClient(settings=config)
         self.log_repository = ClickHouseLogRepository(client=self.ch_client_wrapper.get())
-        self.log_buffer = LogBuffer(batch_size=settings.batch_size)
+        self.log_buffer = LogBuffer(batch_size=config.batch_size)
         self.flush_worker = LogFlushWorker(
             buffer=self.log_buffer,
             repository=self.log_repository,
-            interval=settings.flush_interval_secs
+            interval=config.flush_interval_secs
         )
-        self.docker_client = Docker(url=settings.docker_socket)
+        self.flush_task: asyncio.Task | None = None
+
+
+class DockerDependencies:
+    def __init__(self, config: DockerConfig, app_deps: AppDependencies):
+        self.docker_client = Docker(url=config.docker_socket)
         self.log_parser = LogParser()
         self.docker_collector: DockerLogsCollector | None = None
-
-        self.flush_task: asyncio.Task | None = None
         self.collector_task: asyncio.Task | None = None
+        self.config = config
+        self.app_deps = app_deps
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    settings = get_settings()
-    deps = AppDependencies(settings)
-    app.state.deps = deps
+    app_config = get_app_config()
+    docker_config = get_docker_config()
 
-    deps.flush_task = asyncio.create_task(deps.flush_worker.start())
+    app_deps = AppDependencies(app_config)
+    docker_deps = DockerDependencies(docker_config, app_deps)
 
-    if settings.docker_enabled:
-        deps.docker_collector = DockerLogsCollector(
-            buffer=deps.log_buffer,
-            docker=deps.docker_client,
-            parser=deps.log_parser,
-            allowed_containers=settings.docker_containers
+    app.state.deps = app_deps
+    app.state.docker_deps = docker_deps
+
+    app_deps.flush_task = asyncio.create_task(app_deps.flush_worker.start())
+
+    if docker_config.docker_enabled:
+        docker_deps.docker_collector = DockerLogsCollector(
+            buffer=app_deps.log_buffer,
+            docker=docker_deps.docker_client,
+            parser=docker_deps.log_parser,
+            allowed_containers=docker_config.docker_containers
         )
 
-        deps.collector_task = asyncio.create_task(deps.docker_collector.start())
+        docker_deps.collector_task = asyncio.create_task(docker_deps.docker_collector.start())
 
     yield
 
-    if deps.collector_task:
-        deps.collector_task.cancel()
+    if docker_deps.collector_task:
+        docker_deps.collector_task.cancel()
 
-    if deps.docker_collector:
-        await deps.docker_collector.stop()
+    if docker_deps.docker_collector:
+        await docker_deps.docker_collector.stop()
 
-    if deps.flush_task:
-        deps.flush_task.cancel()
+    if app_deps.flush_task:
+        app_deps.flush_task.cancel()
 
-    await deps.flush_worker.stop()
+    await app_deps.flush_worker.stop()
 
 
 app = FastAPI(title="pygrab", lifespan=lifespan)
