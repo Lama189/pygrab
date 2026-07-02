@@ -1,4 +1,6 @@
+from typing import List, Any
 from functools import lru_cache
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +13,17 @@ class Settings(BaseSettings):
 
     batch_size: int = 1000
     flush_interval_secs: int = 2
+
+    docker_enabled: bool = True
+    docker_socket: str = "unix:///var/run/docker.sock"
+    docker_containers: List[str] | None = None
+
+    @field_validator("docker_containers", mode="before")
+    @classmethod
+    def parse_containers_list(cls, v: Any):
+        if isinstance(v, str) and v.strip():
+            return [item.strip() for item in v.split(",") if item.strip()]
+        return v
 
     model_config = SettingsConfigDict(
         env_file=".env",

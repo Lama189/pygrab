@@ -47,6 +47,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - CLICKHOUSE_DB=${CLICKHOUSE_DB}
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}
@@ -55,6 +56,8 @@ services:
       - CLICKHOUSE_PORT=8123
       - BATCH_SIZE=2000           
       - FLUSH_INTERVAL_SECS=2.0
+      - DOCKER_ENABLED=true
+      - DOCKER_SOCKET=unix:///var/run/docker.sock
     depends_on:
       migrations:
         condition: service_completed_successfully
