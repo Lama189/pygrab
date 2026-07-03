@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import cast
 
 from app.domain.models import LogEntry, LogQueryParams
@@ -47,11 +47,17 @@ class ClickHouseLogRepository(ILogRepository):
 
         if params.start_time_ns:
             query_parts.append("AND timestamp >= {start_time:DateTime64(9)}")
-            query_params["start_time"] = datetime.fromtimestamp(params.start_time_ns / 1_000_000_000)
+            query_params["start_time"] = datetime.fromtimestamp(
+                params.start_time_ns / 1_000_000_000, 
+                tz=timezone.utc
+            ).replace(tzinfo=None) 
         
         if params.end_time_ns:
             query_parts.append("AND timestamp <= {end_time:DateTime64(9)}")
-            query_params["end_time"] = datetime.fromtimestamp(params.end_time_ns / 1_000_000_000)
+            query_params["end_time"] = datetime.fromtimestamp(
+                params.end_time_ns / 1_000_000_000, 
+                tz=timezone.utc
+            ).replace(tzinfo=None)
 
         for i, matcher in enumerate(params.matchers):
             param_key = f"val_{i}"
