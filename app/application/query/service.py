@@ -1,13 +1,26 @@
-from app.domain.models import LogQueryParams, LokiStream, LokiQueryResponse, LogEntry
+import time
+from typing import Any
+
 from app.domain.enums import Direction
+from app.domain.models import LogQueryParams, LokiStream, LokiQueryResponse, LogEntry
 from app.application.query.parser import LogQLParser
 from app.application.interfaces import ILogRepository
+from app.application.logs.buffer import LogBuffer
+from app.application.collector.parser import LogParser
 
 
 class LokiQueryService:
-    def __init__(self, repository: ILogRepository, parser: LogQLParser) -> None:
+    def __init__(
+        self, 
+        repository: ILogRepository, 
+        parser: LogQLParser,
+        log_buffer: LogBuffer,
+        log_parser: LogParser
+    ) -> None:
         self._repository = repository
         self._parser = parser
+        self._log_buffer = log_buffer
+        self._log_parser = log_parser
 
     async def execute_query(
         self, 
@@ -52,3 +65,38 @@ class LokiQueryService:
 
     async def get_label_values(self, label_name: str) -> list[str]:
         return await self._repository.get_label_values(label_name)
+    
+    async def push_external_logs(self, payload: dict[str, Any]) -> None:
+        streams = payload.get("streams", "")
+        if not streams:
+            return
+        
+        for stream_data in streams:
+            labels = stream_data.get("stream", {})
+            values = stream_data.get("values", [])
+
+            for val in values:
+                if len(val) < 2:
+                    continue
+
+                ts_ns_str, message = val[0], val[1]
+
+                try:
+                    timestamp_ns = int(ts_ns_str)
+                except ValueError:
+                    timestamp_ns = time.time_ns()
+
+                trace_id = val[2] if len(val) > 2 else None
+                span_id = val[3] if len(val) > 3 else None
+
+                level = self._log_parser.parse_level(message)
+                entry = LogEntry(
+                    timestamp=timestamp_ns,
+                    level=level,
+                    message=message,
+                    labels=labels,
+                    trace_id=trace_id,
+                    span_id=span_id
+                )
+
+                await self._log_buffer.add(entry)

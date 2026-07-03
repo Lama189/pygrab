@@ -18,6 +18,8 @@ class LogQLParser:
         if not query:
             return []
         
+        query = query.replace('\\"', '"')
+
         if not query.startswith("{") and not query.endswith("}"):
             raise ValueError("Неверный формат LogQL запроса")
         

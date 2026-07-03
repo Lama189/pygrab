@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class AppDependencies:
     def __init__(self, config: AppConfig):
         self.ch_client_wrapper = ClickHouseClient(settings=config)
+        self.log_parser = LogParser()
         self.logql_parser = LogQLParser()
         self.log_repository = ClickHouseLogRepository(client=self.ch_client_wrapper.get())
         self.log_buffer = LogBuffer(batch_size=config.batch_size)
@@ -38,13 +39,14 @@ class AppDependencies:
         self.query_service = LokiQueryService(
             repository=self.log_repository,
             parser=self.logql_parser,
+            log_buffer=self.log_buffer,
+            log_parser=self.log_parser
         )
 
 
 class DockerDependencies:
     def __init__(self, config: DockerConfig, app_deps: AppDependencies):
         self.docker_client = Docker(url=config.docker_socket)
-        self.log_parser = LogParser()
         self.docker_collector: DockerLogsCollector | None = None
         self.collector_task: asyncio.Task | None = None
         self.config = config
@@ -68,7 +70,7 @@ async def lifespan(app: FastAPI):
         docker_deps.docker_collector = DockerLogsCollector(
             buffer=app_deps.log_buffer,
             docker=docker_deps.docker_client,
-            parser=docker_deps.log_parser,
+            parser=app_deps.log_parser,
             allowed_containers=docker_config.docker_containers
         )
 

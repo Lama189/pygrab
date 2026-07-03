@@ -18,7 +18,5 @@ async def injest_logs(
     logs_service: LogsService = Depends(get_logs_service)
 ):
     logs_data = [log.model_dump() for log in payload]
-
     await logs_service.execute(logs_data)
-
     return {"status": "accepted", "processed": len(payload)}

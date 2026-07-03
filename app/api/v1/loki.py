@@ -1,7 +1,15 @@
 import time
 import logging
 from typing import Annotated
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Request,
+    Response,
+    HTTPException,
+    status,
+    Depends,
+    Query,
+)
 
 from app.domain.enums import Direction
 from app.application.query.service import LokiQueryService
@@ -94,3 +102,20 @@ async def get_label_values(
 ):
     values = await service.get_label_values(name)
     return {"status": "success", "data": values}
+
+
+@router.post(
+    path="/push",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def push_logs(
+    request: Request,
+    service: Annotated[LokiQueryService, Depends(get_query_service)],
+):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    
+    await service.push_external_logs(payload)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
