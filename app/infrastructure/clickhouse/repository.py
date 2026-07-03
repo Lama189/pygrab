@@ -54,8 +54,12 @@ class ClickHouseLogRepository(ILogRepository):
             query_params["end_time"] = datetime.fromtimestamp(params.end_time_ns / 1_000_000_000)
 
         for i, matcher in enumerate(params.matchers):
-            param_key = f"val_{i}"  
-            db_field = f"labels['{matcher.name}']"
+            param_key = f"val_{i}"
+            
+            if matcher.name == "level":
+                db_field = "level"
+            else:
+                db_field = f"labels['{matcher.name}']"
 
             if matcher.op == MatchOp.EQ:
                 query_parts.append(f"AND {db_field} = {{{param_key}:String}}")
@@ -101,3 +105,13 @@ class ClickHouseLogRepository(ILogRepository):
             )
             
         return entries
+    
+    async def get_label_names(self) -> list[str]:
+        query = "SELECT DISTINCT arrayJoin(mapKeys(labels)) AS label_name FROM logs ORDER BY label_name"
+        result = await asyncio.to_thread(self._client.query, query)
+        return [row[0] for row in result.result_rows if row[0]]
+    
+    async def get_label_values(self, label_name: str) -> list[str]:
+        query = f"SELECT DISTINCT labels['{label_name}'] AS val FROM logs WHERE mapContains(labels, '{label_name}') ORDER BY val"
+        result = await asyncio.to_thread(self._client.query, query)
+        return [row[0] for row in result.result_rows if row[0]]

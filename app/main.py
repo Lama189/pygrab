@@ -5,14 +5,20 @@ from fastapi import FastAPI
 from aiodocker import Docker
 
 from app.core.config import get_app_config, get_docker_config, AppConfig, DockerConfig
+
 from app.infrastructure.clickhouse.client import ClickHouseClient
 from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
+
 from app.application.logs.buffer import LogBuffer
 from app.application.logs.worker import LogFlushWorker
 from app.application.collector.parser import LogParser
 from app.application.collector.worker import DockerLogsCollector
+from app.application.query.parser import LogQLParser
+from app.application.query.service import LokiQueryService
 
 from app.api.v1.injest import router as injest_router
+from app.api.v1.loki import router as loki_router
+
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +26,7 @@ logger = logging.getLogger(__name__)
 class AppDependencies:
     def __init__(self, config: AppConfig):
         self.ch_client_wrapper = ClickHouseClient(settings=config)
+        self.logql_parser = LogQLParser()
         self.log_repository = ClickHouseLogRepository(client=self.ch_client_wrapper.get())
         self.log_buffer = LogBuffer(batch_size=config.batch_size)
         self.flush_worker = LogFlushWorker(
@@ -28,6 +35,10 @@ class AppDependencies:
             interval=config.flush_interval_secs
         )
         self.flush_task: asyncio.Task | None = None
+        self.query_service = LokiQueryService(
+            repository=self.log_repository,
+            parser=self.logql_parser,
+        )
 
 
 class DockerDependencies:
@@ -80,7 +91,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="pygrab", lifespan=lifespan)
 
 app.include_router(injest_router)
-
+app.include_router(loki_router)
 
 @app.get("/ping")
 def ping():
