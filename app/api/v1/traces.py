@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
@@ -8,7 +9,7 @@ from app.application.traces.service import TraceService
 from app.api.dependencies import get_trace_service
 
 
-router = APIRouter(prefix="/pygrab/api/v1")
+router = APIRouter(prefix="/api")
 
 
 @router.post(
@@ -50,7 +51,6 @@ async def ingest_native_traces(
 
 @router.get(
     path="/traces",
-    response_model=list[SpanModel],
     status_code=status.HTTP_200_OK
 )
 async def get_traces(
@@ -59,7 +59,45 @@ async def get_traces(
     limit: int = Query(100)
 ):
     try:
-        return await service.get_traces(trace_id=trace_id, limit=limit)
+        spans = await service.get_traces(trace_id=trace_id, limit=limit)
+        
+        formatted_spans = []
+        for s in spans:
+            start_dt = datetime.fromtimestamp(s.start_time_ns / 1_000_000_000, tz=timezone.utc)
+            end_dt = datetime.fromtimestamp(s.end_time_ns / 1_000_000_000, tz=timezone.utc)
+
+            raw_status = str(s.status).upper()
+            if "OK" in raw_status:
+                status_formatted = "Ok"
+            elif "ERROR" in raw_status or "ERR" in raw_status:
+                status_formatted = "Error"
+            else:
+                status_formatted = "Unset"
+
+            p_id = s.parent_span_id if s.parent_span_id and s.parent_span_id.strip() else None
+
+            formatted_spans.append({
+                "trace_id": s.trace_id,
+                "span_id": s.span_id,
+                "parent_span_id": p_id,
+                "operation_name": s.operation_name,
+                "service_name": s.service_name,
+                "start_time": start_dt.isoformat().replace("+00:00", "Z"), 
+                "end_time": end_dt.isoformat().replace("+00:00", "Z"),     
+                "status": status_formatted,
+                "attributes": s.attributes,
+                "events": [
+                    {
+                        "name": ev.name,
+                        "timestamp": datetime.fromtimestamp(ev.timestamp_ns / 1_000_000_000, tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+                        "attributes": ev.attributes
+                    }
+                    for ev in s.events
+                ]
+            })
+
+        return formatted_spans
+        
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

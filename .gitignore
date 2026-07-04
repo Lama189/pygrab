@@ -1,4 +1,3 @@
-# Python-generated files
 __pycache__/
 *.py[oc]
 build/
@@ -6,7 +5,16 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
 .venv
 .vscode/
 .env
+
+tui/target/
+target/
+**/*.rs.bk
+*.pdb
+**/mutants.out*/
+
+data/
+.env
+.env.local

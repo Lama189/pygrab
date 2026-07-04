@@ -100,3 +100,12 @@ class LokiQueryService:
                 )
 
                 await self._log_buffer.add(entry)
+
+    async def get_logs(self, limit: int = 200, offset: int = 0) -> list[LogEntry]:
+        params = LogQueryParams(
+            limit=limit,
+            direction=Direction.BACKWARD,
+            matchers=[]
+        )
+
+        return await self._repository.fetch(params)
