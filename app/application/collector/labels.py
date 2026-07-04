@@ -1,10 +1,10 @@
-from typing import Any, Dict
+from typing import Any
 
 
 class DockerLabelsExtractor:
     
     @staticmethod
-    def extract(container_info: Dict[str, Any], stream_name: str) -> Dict[str, str]:
+    def extract(container_info: dict[str, Any], stream_name: str) -> dict[str, str]:
         config = container_info.get("Config", {})
         docker_labels = config.get("Labels", {})
 

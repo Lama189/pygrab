@@ -2,59 +2,17 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from aiodocker import Docker
 
-from app.core.config import get_app_config, get_docker_config, AppConfig, DockerConfig
-
-from app.infrastructure.clickhouse.client import ClickHouseClient
-from app.infrastructure.clickhouse.factory import ClickHouseClientFactory
-from app.infrastructure.clickhouse.pool import ClickHousePool
-from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
-
-from app.application.logs.buffer import LogBuffer
-from app.application.logs.worker import LogFlushWorker
-from app.application.collector.parser import LogParser
+from app.core.config import get_app_config, get_docker_config
+from app.core.dependencies import AppDependencies, DockerDependencies
 from app.application.collector.worker import DockerLogsCollector
-from app.application.query.parser import LogQLParser
-from app.application.query.service import LokiQueryService
 
 from app.api.v1.injest import router as injest_router
 from app.api.v1.loki import router as loki_router
+from app.api.v1.traces import router as traces_router
 
 
 logger = logging.getLogger(__name__)
-
-
-class AppDependencies:
-    def __init__(self, config: AppConfig):
-        self._ch_client_factory = ClickHouseClientFactory(config)
-        self._ch_pool = ClickHousePool(self._ch_client_factory)
-        self.log_repository = ClickHouseLogRepository(self._ch_pool)
-
-        self.log_parser = LogParser()
-        self.logql_parser = LogQLParser()
-        self.log_buffer = LogBuffer(batch_size=config.batch_size)
-        self.flush_worker = LogFlushWorker(
-            buffer=self.log_buffer,
-            repository=self.log_repository,
-            interval=config.flush_interval_secs
-        )
-        self.flush_task: asyncio.Task | None = None
-        self.query_service = LokiQueryService(
-            repository=self.log_repository,
-            parser=self.logql_parser,
-            log_buffer=self.log_buffer,
-            log_parser=self.log_parser
-        )
-
-
-class DockerDependencies:
-    def __init__(self, config: DockerConfig, app_deps: AppDependencies):
-        self.docker_client = Docker(url=config.docker_socket)
-        self.docker_collector: DockerLogsCollector | None = None
-        self.collector_task: asyncio.Task | None = None
-        self.config = config
-        self.app_deps = app_deps
 
 
 @asynccontextmanager
@@ -98,6 +56,7 @@ app = FastAPI(title="pygrab", lifespan=lifespan)
 
 app.include_router(injest_router)
 app.include_router(loki_router)
+app.include_router(traces_router)
 
 @app.get("/ping")
 def ping():

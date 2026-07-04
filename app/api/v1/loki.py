@@ -13,7 +13,7 @@ from fastapi import (
 
 from app.domain.enums import Direction
 from app.application.query.service import LokiQueryService
-from app.application.dependencies import get_query_service
+from app.api.dependencies import get_query_service
 from app.application.utils.time_parser import parse_time_ns
 
 

@@ -27,19 +27,21 @@ class ClickHouseLogRepository(ILogRepository):
             for e in batch
         ]
 
+        column_names=[
+            "timestamp",
+            "level",
+            "message",
+            "labels",
+            "trace_id",
+            "span_id",
+        ]
+
         def run():
             with self._pool.client() as client:
                 client.insert(
                     table="pygrab_db.logs",
                     data=data,
-                    column_names=[
-                        "timestamp",
-                        "level",
-                        "message",
-                        "labels",
-                        "trace_id",
-                        "span_id",
-                    ],
+                    column_names=column_names,
                 )
         
         await asyncio.to_thread(run)

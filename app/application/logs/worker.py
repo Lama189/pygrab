@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from app.application.logs.buffer import LogBuffer
-from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
+from app.infrastructure.clickhouse.repos.logs import ClickHouseLogRepository
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import time
 import logging
-from typing import List, Dict, Any
+from typing import Any
 
 from app.domain.models import LogEntry
 from app.domain.enums import LogLevel
@@ -14,7 +14,7 @@ class LogsService:
     def __init__(self, buffer: LogBuffer) -> None:
         self._buffer = buffer
 
-    async def execute(self, logs_dto: List[Dict[str, Any]]) -> None:
+    async def execute(self, logs_dto: list[dict[str, Any]]) -> None:
         try:
             for raw_log in logs_dto:
                 timestamp = raw_log.get("timestamp")

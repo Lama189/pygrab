@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import time
-from typing import List, Optional
 from aiodocker import Docker
 
 from app.domain.models import LogEntry
@@ -18,14 +17,14 @@ class DockerLogsCollector:
         buffer: LogBuffer,
         docker: Docker,
         parser: LogParser,
-        allowed_containers: Optional[List[str]] = None,
+        allowed_containers: list[str] | None = None,
     ) -> None:
         self._buffer = buffer
         self._docker = docker
         self._parser = parser
         self._allowed_containers = allowed_containers
         
-        self._tasks: List[asyncio.Task] = []
+        self._tasks: list[asyncio.Task] = []
         self._running = False
 
     async def _stream_container_logs(self, container, info: dict) -> None:

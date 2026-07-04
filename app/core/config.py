@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import Any
 from functools import lru_cache
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,7 +24,7 @@ class AppConfig(BaseSettings):
 class DockerConfig(BaseSettings):
     docker_enabled: bool = True
     docker_socket: str = "unix:///var/run/docker.sock"
-    docker_containers: List[str] | None = None
+    docker_containers: list[str] | None = None
 
     @field_validator("docker_containers", mode="before")
     @classmethod

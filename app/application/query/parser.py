@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 from app.domain.models import LabelMatcher, MatchOp
 
@@ -13,7 +12,7 @@ class LogQLParser:
         "!~": MatchOp.NRE,
     }
 
-    def parse(self, query: str) -> List[LabelMatcher]:
+    def parse(self, query: str) -> list[LabelMatcher]:
         query = query.strip()
         if not query:
             return []
