@@ -5,11 +5,11 @@ from typing import cast
 from app.domain.models import LogEntry, LogQueryParams
 from app.domain.enums import MatchOp, LogLevel, Direction
 from app.application.interfaces import ILogRepository
-from app.infrastructure.clickhouse.protocol import ClickHouseClientProtocol
+from app.infrastructure.clickhouse.pool import ClickHousePool
 
 class ClickHouseLogRepository(ILogRepository):
-    def __init__(self, client: ClickHouseClientProtocol) -> None:
-        self._client = client
+    def __init__(self, pool: ClickHousePool) -> None:
+        self._pool = pool
     
     async def flush(self, batch: list[LogEntry]) -> None:
         if not batch:
@@ -27,19 +27,22 @@ class ClickHouseLogRepository(ILogRepository):
             for e in batch
         ]
 
-        await asyncio.to_thread(
-            self._client.insert,
-            table="pygrab_db.logs",
-            data=data,
-            column_names=[
-                "timestamp",
-                "level",
-                "message",
-                "labels",
-                "trace_id",
-                "span_id",
-            ],
-        )
+        def run():
+            with self._pool.client() as client:
+                client.insert(
+                    table="pygrab_db.logs",
+                    data=data,
+                    column_names=[
+                        "timestamp",
+                        "level",
+                        "message",
+                        "labels",
+                        "trace_id",
+                        "span_id",
+                    ],
+                )
+        
+        await asyncio.to_thread(run)
     
     async def fetch(self, params: LogQueryParams) -> list[LogEntry]:
         query_parts = ["SELECT timestamp, level, message, labels, trace_id, span_id FROM logs WHERE 1=1"]
@@ -89,11 +92,11 @@ class ClickHouseLogRepository(ILogRepository):
 
         final_query = "\n".join(query_parts)
         
-        result = await asyncio.to_thread(
-            self._client.query,
-            final_query,
-            parameters=query_params
-        )
+        def run():
+            with self._pool.client() as client:
+                return client.query(final_query, parameters=query_params)
+            
+        result = await asyncio.to_thread(run)
 
         entries = []
         for row in result.result_rows:
@@ -112,12 +115,27 @@ class ClickHouseLogRepository(ILogRepository):
             
         return entries
     
-    async def get_label_names(self) -> list[str]:
-        query = "SELECT DISTINCT arrayJoin(mapKeys(labels)) AS label_name FROM logs ORDER BY label_name"
-        result = await asyncio.to_thread(self._client.query, query)
+    async def get_label_values(self, label_name: str) -> list[str]:
+        query = f"""
+            SELECT DISTINCT labels['{label_name}'] AS val
+            FROM logs
+            WHERE mapContains(labels, '{label_name}')
+            ORDER BY val
+        """
+
+        def run():
+            with self._pool.client() as client:
+                return client.query(query)
+
+        result = await asyncio.to_thread(run)
         return [row[0] for row in result.result_rows if row[0]]
     
-    async def get_label_values(self, label_name: str) -> list[str]:
-        query = f"SELECT DISTINCT labels['{label_name}'] AS val FROM logs WHERE mapContains(labels, '{label_name}') ORDER BY val"
-        result = await asyncio.to_thread(self._client.query, query)
+    async def get_label_names(self) -> list[str]:
+        query = "SELECT DISTINCT arrayJoin(mapKeys(labels)) AS label_name FROM logs ORDER BY label_name"
+
+        def run():
+            with self._pool.client() as client:
+                return client.query(query)
+
+        result = await asyncio.to_thread(run)
         return [row[0] for row in result.result_rows if row[0]]

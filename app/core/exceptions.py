@@ -1,0 +1,2 @@
+class PoolExhaustedError(Exception):
+    pass

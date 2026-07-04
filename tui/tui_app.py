@@ -19,15 +19,16 @@ class RGrabTUI(App):
     BINDINGS = [
         Binding("tab", "toggle_tab", "Switch Tab"),
         Binding("slash", "focus_search", "Search Mode"),
+        Binding("escape", "blur_search", "Exit Search"),
         Binding("s", "toggle_sort", "Toggle Sort"),
         Binding("l", "toggle_live", "Live Tail"),
         Binding("r", "refresh_all", "Manual Refresh"),
         Binding("q", "quit_app", "Quit"),
-        Binding("ctrl+1", "change_server(0)", "Server 1", show=False),
-        Binding("ctrl+2", "change_server(1)", "Server 2", show=False),
-        Binding("ctrl+3", "change_server(2)", "Server 3", show=False),
-        Binding("ctrl+4", "change_server(3)", "Server 4", show=False),
-        Binding("ctrl+5", "change_server(4)", "Server 5", show=False),
+        Binding("alt+1", "change_server(0)", "Server 1", show=False),
+        Binding("alt+2", "change_server(1)", "Server 2", show=False),
+        Binding("alt+3", "change_server(2)", "Server 3", show=False),
+        Binding("alt+4", "change_server(3)", "Server 4", show=False),
+        Binding("alt+5", "change_server(4)", "Server 5", show=False),
         Binding("1", "toggle_trace", "Trace", show=False),
         Binding("2", "toggle_debug", "Debug", show=False),
         Binding("3", "toggle_info", "Info", show=False),
@@ -271,6 +272,9 @@ class RGrabTUI(App):
 
     def action_focus_search(self) -> None:
         self.query_one("#search-bar", Input).focus()
+
+    def action_blur_search(self) -> None:
+        self.query_one("#log-list", RichLog).focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:
         if event.input.id == "search-bar":

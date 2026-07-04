@@ -7,6 +7,8 @@ from aiodocker import Docker
 from app.core.config import get_app_config, get_docker_config, AppConfig, DockerConfig
 
 from app.infrastructure.clickhouse.client import ClickHouseClient
+from app.infrastructure.clickhouse.factory import ClickHouseClientFactory
+from app.infrastructure.clickhouse.pool import ClickHousePool
 from app.infrastructure.clickhouse.repository import ClickHouseLogRepository
 
 from app.application.logs.buffer import LogBuffer
@@ -25,10 +27,12 @@ logger = logging.getLogger(__name__)
 
 class AppDependencies:
     def __init__(self, config: AppConfig):
-        self.ch_client_wrapper = ClickHouseClient(settings=config)
+        self._ch_client_factory = ClickHouseClientFactory(config)
+        self._ch_pool = ClickHousePool(self._ch_client_factory)
+        self.log_repository = ClickHouseLogRepository(self._ch_pool)
+
         self.log_parser = LogParser()
         self.logql_parser = LogQLParser()
-        self.log_repository = ClickHouseLogRepository(client=self.ch_client_wrapper.get())
         self.log_buffer = LogBuffer(batch_size=config.batch_size)
         self.flush_worker = LogFlushWorker(
             buffer=self.log_buffer,
