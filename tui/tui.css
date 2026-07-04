@@ -1,0 +1,101 @@
+#app-grid {
+    layout: grid;
+    grid-size: 2;
+    grid-columns: 6 1fr;
+}
+
+#server-panel {
+    border-right: solid round $panel;
+    background: $background;
+    color: $text-muted;
+    text-align: center;
+}
+
+.server-item {
+    padding: 1 0;
+    margin: 1 0;
+}
+
+.server-item.active {
+    background: yellow;
+    color: black;
+    text-style: bold;
+}
+
+#main-area {
+    layout: vertical;
+}
+
+Tabs {
+    dock: top;
+    height: 3;
+    border-bottom: solid $primary;
+}
+
+#search-bar {
+    height: 3;
+    border: round gray;
+    margin: 0 1;
+}
+
+#search-bar.active {
+    border: round yellow;
+}
+
+#body-area {
+    layout: grid;
+    grid-size: 2;
+    grid-columns: 24 1fr;
+    height: 1fr;
+}
+
+#sidebar {
+    border: round gray;
+    margin: 0 1;
+}
+
+#sidebar.focused {
+    border: round yellow;
+}
+
+#log-list {
+    border: round yellow;
+    margin: 0 1;
+}
+
+#log-list.blur {
+    border: round gray;
+}
+
+#footer-area {
+    layout: vertical;
+    height: 3;
+    dock: bottom;
+}
+
+#key-hints {
+    height: 1;
+    color: $text-muted;
+    background: $surface;
+}
+
+#status-bar {
+    height: 2;
+    border-top: solid gray;
+    color: $text-muted;
+}
+
+#disconnected-overlay {
+    layer: overlay;
+    background: rgba(0, 0, 0, 0.7);
+    content-align: center middle;
+}
+
+#disconnected-box {
+    width: 50;
+    height: 9;
+    border: double red;
+    background: $surface;
+    content-align: center middle;
+    text-align: center;
+}
