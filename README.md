@@ -4,7 +4,7 @@ Lightweight observability backend for logs and distributed traces.
 
 Accepts logs via HTTP push, collects from Docker containers, receives OpenTelemetry (OTLP) traces, and provides a Loki-compatible query API. Uses ClickHouse for storage. Comes with a built-in terminal UI.
 
-<img width="1874" height="939" alt="image_2026-07-04_17-01-03" src="https://github.com/user-attachments/assets/a4befa11-2937-45c0-b542-be3267e8e305" />
+<img width="1874" height="939" alt="image_2026-07-04_17-01-03" src="/home/lama/Изображения/image_2026-07-05_16-48-40.png" />
 
 ## Features
 
@@ -67,13 +67,13 @@ DOCKER_CONTAINERS='[{"name": "fastapi-app", "service": "backend", "environment":
 
 When `DOCKER_ENABLED=True`, the application attaches to the Docker daemon socket and appends metadata labels to each ingested line:
 
-| Label | Source |
-|--------|--------|
-| service | Explicit mapping from configuration, falling back to container name |
-| environment | Context environment string from configuration |
-| container_name | Raw name parsed from Docker event |
-| container_id | Truncated unique container hash identifier |
-| stream | Source descriptor (`stdout` or `stderr`) |
+| Label          | Source                                                              |
+| -------------- | ------------------------------------------------------------------- |
+| service        | Explicit mapping from configuration, falling back to container name |
+| environment    | Context environment string from configuration                       |
+| container_name | Raw name parsed from Docker event                                   |
+| container_id   | Truncated unique container hash identifier                          |
+| stream         | Source descriptor (`stdout` or `stderr`)                            |
 
 ## Quick Start
 
@@ -156,14 +156,14 @@ curl 'http://localhost:8000/api/traces?limit=100'
 
 ## TUI Keybindings
 
-| Key | Action |
-|-----|--------|
-| Tab | Toggle layout context between Logs and Traces views |
-| j / k | Navigate viewport row selection downwards / upwards |
-| h / l | Swap element focus between side panel tree and primary data table |
+| Key   | Action                                                                         |
+| ----- | ------------------------------------------------------------------------------ |
+| Tab   | Toggle layout context between Logs and Traces views                            |
+| j / k | Navigate viewport row selection downwards / upwards                            |
+| h / l | Swap element focus between side panel tree and primary data table              |
 | Enter | Toggle target label filtering scope / Explode runtime span execution hierarchy |
-| / | Focus search context console overlay for raw message matching |
-| 1 - 6 | Toggle visualization display rules for specific log severities (TRACE..FATAL) |
-| L | Lock viewport tail orientation to real-time incoming records (Live Tail) |
-| s | Reverse sort order constraints index |
-| q | Terminate session and exit to terminal shell |
+| /     | Focus search context console overlay for raw message matching                  |
+| 1 - 6 | Toggle visualization display rules for specific log severities (TRACE..FATAL)  |
+| L     | Lock viewport tail orientation to real-time incoming records (Live Tail)       |
+| s     | Reverse sort order constraints index                                           |
+| q     | Terminate session and exit to terminal shell                                   |

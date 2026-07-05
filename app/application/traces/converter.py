@@ -32,7 +32,7 @@ def convert_otlp_to_domain(request: ExportTraceServiceRequest) -> list[SpanModel
     domain_spans: list[SpanModel] = []
 
     for resource_span in request.resourceSpans:
-        resource_attrs = parse_otlp_attributes(resource_span)
+        resource_attrs = parse_otlp_attributes(resource_span.resource.attributes)
         service_name = resource_attrs.get("service.name", "unknown_service")
 
         for scope_span in resource_span.scopeSpans:
