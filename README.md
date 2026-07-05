@@ -4,7 +4,7 @@ Lightweight observability backend for logs and distributed traces.
 
 Accepts logs via HTTP push, collects from Docker containers, receives OpenTelemetry (OTLP) traces, and provides a Loki-compatible query API. Uses ClickHouse for storage. Comes with a built-in terminal UI.
 
-<img width="1874" height="939" alt="image_2026-07-04_17-01-03" src="/home/lama/Изображения/image_2026-07-05_16-48-40.png" />
+<img width="1860" height="919" alt="image_2026-07-05_16-48-40" src="https://github.com/user-attachments/assets/f2c12e91-5c75-4273-a558-0ef71ea2a517" />
 
 ## Features
 
