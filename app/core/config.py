@@ -25,6 +25,9 @@ class DockerConfig(BaseSettings):
     docker_enabled: bool = True
     docker_socket: str = "unix:///var/run/docker.sock"
     docker_containers: list[str] | None = None
+    collector_max_retries: int = 5
+    collector_base_delay: float = 1.0
+    collector_max_delay: float = 60.0
 
     @field_validator("docker_containers", mode="before")
     @classmethod

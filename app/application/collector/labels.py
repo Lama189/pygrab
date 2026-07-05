@@ -9,16 +9,18 @@ class DockerLabelsExtractor:
         docker_labels = config.get("Labels", {})
 
         container_name = container_info.get("Name", "").lstrip("/")
+        container_id = container_info.get("Id", "")
         image_name = config.get("Image", "")
 
         compose_project = docker_labels.get("com.docker.compose.project", "default")
         compose_service = docker_labels.get("com.docker.compose.service", container_name)
 
         return {
+            "container_id": container_id,
             "container_name": container_name,
             "image": image_name,
             "compose_project": compose_project,
             "compose_service": compose_service,
             "stream": stream_name,
-            "service": compose_service
+            "service": compose_service,
         }

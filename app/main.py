@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
             buffer=app_deps.log_buffer,
             docker=docker_deps.docker_client,
             parser=app_deps.log_parser,
-            allowed_containers=docker_config.docker_containers
+            config=docker_config,
         )
 
         docker_deps.collector_task = asyncio.create_task(docker_deps.docker_collector.start())
