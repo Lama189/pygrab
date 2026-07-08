@@ -21,7 +21,7 @@ async def test_loki_push(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -29,7 +29,7 @@ async def test_loki_push(client: AsyncClient):
 async def test_loki_push_empty(client: AsyncClient):
     payload = {"streams": []}
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -49,7 +49,7 @@ async def test_loki_push_multiple_streams(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -67,7 +67,7 @@ async def test_loki_push_with_trace_id(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 

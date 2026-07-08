@@ -64,6 +64,19 @@ services:
     networks:
       - app_network
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: pygrab-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - pygrab
+    networks:
+      - app_network
+
 volumes:
   ch_data:
 

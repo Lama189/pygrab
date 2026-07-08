@@ -66,3 +66,18 @@ class TestLogQLParser:
         assert len(matchers) == 3
         names = {m.name for m in matchers}
         assert names == {"service", "env", "level"}
+
+    def test_parse_with_pipeline_stage(self):
+        matchers = self.parser.parse('{container_name="pygrab_api"} |~ "Exception|Error|WARNING"')
+        assert len(matchers) == 1
+        assert matchers[0].name == "container_name"
+        assert matchers[0].op == MatchOp.EQ
+        assert matchers[0].value == "pygrab_api"
+
+    def test_parse_metrics_query(self):
+        matchers = self.parser.parse(
+            'sum by (level) (count_over_time({service="api"} |~ "error" [1m]))'
+        )
+        assert len(matchers) == 1
+        assert matchers[0].name == "service"
+        assert matchers[0].value == "api"

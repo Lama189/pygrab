@@ -17,10 +17,13 @@ class LogQLParser:
         if not query:
             return []
 
-        if not query.startswith("{") or not query.endswith("}"):
+        start = query.find("{")
+        end = query.find("}", start + 1) if start != -1 else -1
+
+        if start == -1 or end == -1:
             raise ValueError("Неверный формат LogQL запроса")
         
-        content = query[1:-1].strip()
+        content = query[start + 1:end].strip()
         if not content:
             return []
         

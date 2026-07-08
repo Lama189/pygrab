@@ -1,3 +1,5 @@
+import re
+import asyncio
 from dataclasses import dataclass, field, asdict
 from typing import Any
 
@@ -49,7 +51,8 @@ class LokiQueryResponse:
                 "resultType": "streams",
                 "result": [
                     {"stream": s.stream, "values": s.values} for s in streams
-                ]
+                ],
+                "stats": {}
             }
         )
     
@@ -77,3 +80,28 @@ class SpanModel:
     attributes: dict[str, str] = field(default_factory=dict)
     events: list[SpanEventModel] = field(default_factory=list)
     parent_span_id: str | None = None
+
+
+
+@dataclass
+class TailSubscriber:
+    queue: asyncio.Queue
+    matchers: list[LabelMatcher]
+
+    def matches(self, entry: LogEntry) -> bool:
+        if not self.matchers:
+            return True
+        for m in self.matchers:
+            value = entry.labels.get(m.name, "")
+            if m.name == "level":
+                value = entry.level.value
+            if m.op == MatchOp.EQ and value != m.value:
+                return False
+            if m.op == MatchOp.NEQ and value == m.value:
+                return False
+            if m.op == MatchOp.RE and not re.search(m.value, value):
+                return False
+            if m.op == MatchOp.NRE and re.search(m.value, value):
+                return False
+            
+        return True
