@@ -38,5 +38,5 @@ class LogsService:
                 )
 
                 await self._buffer.add(entry)
-        except Exception as e:
+        except Exception:
             logger.error(f"Error processing log: {raw_log}")

@@ -1,9 +1,6 @@
 import asyncio
-import re
-from dataclasses import dataclass, field
 
 from app.domain.models import LogEntry, LabelMatcher, TailSubscriber
-from app.domain.enums import MatchOp
 
 
 class LogBuffer:

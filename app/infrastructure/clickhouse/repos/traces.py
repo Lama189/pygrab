@@ -1,6 +1,5 @@
 import json
 import asyncio
-from dataclasses import asdict
 from datetime import datetime, timezone
 
 from app.domain.models import SpanModel, SpanEventModel

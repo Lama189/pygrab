@@ -2,8 +2,7 @@ import time
 import pytest
 from httpx import AsyncClient
 
-from app.domain.enums import LogLevel
-from app.domain.models import LogEntry, SpanModel
+from app.domain.models import SpanModel
 
 
 @pytest.mark.asyncio

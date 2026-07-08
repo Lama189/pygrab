@@ -35,7 +35,6 @@ class DockerLogsCollector:
         return container_name in self._config.docker_containers
 
     async def _stream_container_logs(self, container, info: dict) -> None:
-        container_id = info.get("Id", "")
         container_name = info.get("Name", "").lstrip("/")
 
         retries = 0

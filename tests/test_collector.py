@@ -1,5 +1,3 @@
-import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from app.application.collector.labels import DockerLabelsExtractor
 from app.application.collector.parser import LogParser
