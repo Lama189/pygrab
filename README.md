@@ -2,168 +2,352 @@
 
 Lightweight observability backend for logs and distributed traces.
 
-Accepts logs via HTTP push, collects from Docker containers, receives OpenTelemetry (OTLP) traces, and provides a Loki-compatible query API. Uses ClickHouse for storage. Comes with a built-in terminal UI.
-
-<img width="1860" height="919" alt="image_2026-07-05_16-48-40" src="https://github.com/user-attachments/assets/f2c12e91-5c75-4273-a558-0ef71ea2a517" />
+Pygrab collects logs from Docker containers, receives OpenTelemetry traces, stores observability data in ClickHouse, and exposes a Loki-compatible API for seamless Grafana integration.
 
 ## Features
 
-- **Log ingestion** — HTTP push API, Loki-compatible push, Docker container log collection.
-- **Distributed tracing** — OTLP trace ingestion with span correlation and tree rendering.
-- **Loki-compatible API** — query logs with `{service="my-app", level="error"}` selectors.
-- **Docker collector** — streams stdout/stderr from configured containers, auto-detects log levels, manages attachments dynamically.
-- **Terminal UI** — browse logs and traces, filter by service/environment, search, live tail.
-- **ClickHouse storage** — high-performance analytical storage for log entries and traces.
+- **Log ingestion**
+  - HTTP JSON log ingestion API
+  - Loki-compatible push endpoint
+  - Native Docker container log collection
 
-## Project Structure
+- **Grafana integration**
+  - Loki-compatible query API
+  - LogQL selector support
+  - Grafana Explore compatibility
+  - Real-time log streaming via WebSocket
 
-```text
+- **Distributed tracing**
+  - OpenTelemetry (OTLP) trace ingestion
+  - Span correlation
+  - Trace storage in ClickHouse
+
+- **Docker collector**
+  - Streams stdout/stderr from containers
+  - Dynamic container attachment
+  - Automatic metadata enrichment
+
+- **High-performance storage**
+  - ClickHouse analytical storage
+  - Async ingestion pipeline
+  - Buffered log processing
+
+---
+
+# Architecture
+
+```mermaid
+graph LR
+
+Docker --> Collector
+OTLP --> Pygrab
+HTTP --> Pygrab
+
+Collector --> Pygrab
+
+Pygrab --> ClickHouse
+
+Grafana --> LokiAPI[Pygrab Loki API]
+```
+
+---
+
+# Project Structure
+
+```
 pygrab/
-├── app/                        # Python FastAPI Backend
-│   ├── api/                    # Routers and endpoints
+├── app/
+│   ├── api/
 │   │   ├── dependencies.py
-│   │   └── v1/                 # Endpoints separated for TUI and Loki
-│   │       ├── ingest.py
+│   │   └── v1/
+│   │       ├── injest.py
 │   │       ├── loki.py
 │   │       └── traces.py
-│   ├── application/            # Services and core logic
-│   │   ├── collector/          # Docker collector worker and parsers
-│   │   ├── logs/               # Log pipeline and memory buffering
-│   │   ├── query/              # LogQL selectors parser
-│   │   ├── traces/             # OTLP converters and trace services
-│   │   └── utils/              # Time formatters and TUI payload mappers
-│   ├── domain/                 # Models, enums, and domain rules
-│   └── infrastructure/         # ClickHouse connections pool & repositories
-├── db/                         # ClickHouse database migrations
-├── tui/                        # Autonomous Rust TUI client (Ratatui)
-│   ├── Cargo.toml              # Dependencies config
-│   └── src/                    # UI code, client modules, and state engines
-└── docker-compose.yml          # Infrastructure orchestration (API, ClickHouse, Redis)
+│   ├── application/
+│   │   ├── collector/
+│   │   │   ├── labels.py
+│   │   │   ├── parser.py
+│   │   │   └── worker.py
+│   │   ├── dto/
+│   │   │   └── logs.py
+│   │   ├── interfaces.py
+│   │   ├── logs/
+│   │   │   ├── buffer.py
+│   │   │   ├── service.py
+│   │   │   └── worker.py
+│   │   ├── query/
+│   │   │   ├── parser.py
+│   │   │   └── service.py
+│   │   ├── schemas/
+│   │   │   └── otlp.py
+│   │   ├── traces/
+│   │   │   ├── converter.py
+│   │   │   └── service.py
+│   │   └── utils/
+│   │       ├── loki_helpers.py
+│   │       ├── time_parser.py
+│   │       └── tui_formatter.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── dependencies.py
+│   │   └── exceptions.py
+│   ├── domain/
+│   │   ├── enums.py
+│   │   └── models.py
+│   ├── infrastructure/
+│   │   └── clickhouse/
+│   │       ├── client.py
+│   │       ├── factory.py
+│   │       ├── pool.py
+│   │       └── repos/
+│   │           ├── logs.py
+│   │           └── traces.py
+│   └── main.py
+├── migrations/
+├── tests/
+│   ├── conftest.py
+│   ├── test_collector.py
+│   ├── test_ingest.py
+│   ├── test_logql_parser.py
+│   ├── test_loki_push.py
+│   └── test_query.py
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+└── README.md
 ```
 
-## Configuration
+---
 
-Copy `.env.example` to `.env` and adjust the variables:
+# Quick Start
 
-```env
-LOG_LEVEL=info
-LISTEN_HOST=0.0.0.0
-LISTEN_PORT=8000
+## 1. Start infrastructure
 
-# ClickHouse Configuration
-CLICKHOUSE_DB=pygrab_db
-CLICKHOUSE_USER=pygrab_user
-CLICKHOUSE_PASSWORD=your_secure_password
-CLICKHOUSE_HOST=localhost
-CLICKHOUSE_PORT=8123
+Make sure Docker is running.
 
-# Docker Collector Configuration
-DOCKER_ENABLED=True
-DOCKER_SOCKET=unix:///var/run/docker.sock
-DOCKER_CONTAINERS='[{"name": "fastapi-app", "service": "backend", "environment": "production"}, {"name": "nginx", "service": "nginx", "environment": "production"}]'
-```
-
-## Docker Collector Metadata
-
-When `DOCKER_ENABLED=True`, the application attaches to the Docker daemon socket and appends metadata labels to each ingested line:
-
-| Label          | Source                                                              |
-| -------------- | ------------------------------------------------------------------- |
-| service        | Explicit mapping from configuration, falling back to container name |
-| environment    | Context environment string from configuration                       |
-| container_name | Raw name parsed from Docker event                                   |
-| container_id   | Truncated unique container hash identifier                          |
-| stream         | Source descriptor (`stdout` or `stderr`)                            |
-
-## Quick Start
-
-### 1. Boot Infrastructure
-
-Ensure Docker daemon is running locally. Spin up the background ingestion pipelines, analytical DB, and workers:
+Start Pygrab, ClickHouse and Grafana:
 
 ```bash
 docker compose up --build -d
 ```
 
-The backend instance listens on port `8000` by default.
+Services:
 
-### 2. Launch Terminal UI
+| Service | Address |
+|---|---|
+| Pygrab API | http://localhost:8000 |
+| Grafana | http://localhost:3000 |
+| ClickHouse | http://localhost:8123 |
 
-The TUI dashboard runs autonomously and is placed under the `tui/` directory.
+---
 
-From the root directory of the project, execute:
+# Grafana Setup
 
-```bash
-cargo run --manifest-path tui/Cargo.toml -- --server http://localhost:8000
+Pygrab exposes a Loki-compatible API.
+
+Add a Loki datasource in Grafana:
+
+```
+URL:
+
+http://pygrab:8000
 ```
 
-Or change the working directory directly:
+Example query:
 
-```bash
-cd tui && cargo run -- --server http://localhost:8000
+```logql
+{container_name="pygrab_api"}
 ```
 
-## API Reference
+You can now explore logs directly from Grafana.
 
-### Log Ingestion
+---
 
-#### Native HTTP JSON Push (Array of LogEntry)
+# Configuration
 
-```bash
-curl -X POST http://localhost:8000/v1/logs \
-  -H 'Content-Type: application/json' \
-  -d '[{"timestamp":1719830400000000000,"level":"INFO","message":"Server started","labels":{"service":"core"}}]'
-```
-
-#### Loki-compatible Push Endpoint
+Copy environment example:
 
 ```bash
-curl -X POST http://localhost:8000/pygrab/api/v1/push \
-  -H 'Content-Type: application/json' \
-  -d '{"streams":[{"stream":{"service":"proxy"},"values":[["1719830400000000000","GET /index.html 200"]]}]}'
+cp .env.example .env
 ```
 
-### OTLP Distributed Tracing
+Example:
 
-Push OpenTelemetry JSON spans directly:
+```env
+LOG_LEVEL=info
+
+LISTEN_HOST=0.0.0.0
+LISTEN_PORT=8000
+
+CLICKHOUSE_DB=pygrab_db
+CLICKHOUSE_USER=pygrab_user
+CLICKHOUSE_PASSWORD=password
+CLICKHOUSE_HOST=localhost
+CLICKHOUSE_PORT=8123
+```
+
+Docker collector configuration:
+
+```env
+DOCKER_ENABLED=True
+DOCKER_SOCKET=unix:///var/run/docker.sock
+
+DOCKER_CONTAINERS='[
+  {
+    "name": "fastapi-app",
+    "service": "backend",
+    "environment": "production"
+  }
+]'
+```
+
+---
+
+# Docker Collector Metadata
+
+When Docker collection is enabled, Pygrab enriches every log entry with metadata labels.
+
+| Label | Description |
+|---|---|
+| service | Service name from configuration |
+| environment | Deployment environment |
+| container_name | Docker container name |
+| container_id | Container identifier |
+| stream | stdout/stderr source |
+
+Example:
+
+```logql
+{service="backend", environment="production"}
+```
+
+---
+
+# API Reference
+
+## Loki API
+
+### Query logs
+
+```http
+GET /loki/api/v1/query
+```
+
+Example:
 
 ```bash
-curl -X POST http://localhost:8000/api/otlp/v1/traces \
-  -H 'Content-Type: application/json' \
-  -d @traces.json
+curl \
+"http://localhost:8000/loki/api/v1/query?query={container_name=\"pygrab_api\"}"
 ```
 
-### Queries & Metadata
+---
 
-List registered label names:
+### Range query
+
+```http
+GET /loki/api/v1/query_range
+```
+
+Example:
 
 ```bash
-curl http://localhost:8000/pygrab/api/v1/labels
+curl \
+"http://localhost:8000/loki/api/v1/query_range?query={service=\"backend\"}"
 ```
 
-Fetch distinct values for a given label:
+---
+
+### Push logs
+
+Loki-compatible ingestion:
+
+```http
+POST /loki/api/v1/push
+```
+
+Example:
 
 ```bash
-curl http://localhost:8000/pygrab/api/v1/label/service/values
+curl -X POST http://localhost:8000/loki/api/v1/push \
+-H "Content-Type: application/json" \
+-d '
+{
+  "streams": [
+    {
+      "stream": {
+        "service": "api"
+      },
+      "values": [
+        [
+          "1719830400000000000",
+          "Server started"
+        ]
+      ]
+    }
+  ]
+}'
 ```
 
-Internal query endpoints utilized by the TUI client:
+---
+
+### Labels
+
+List available labels:
+
+```http
+GET /loki/api/v1/labels
+```
+
+Example:
 
 ```bash
-curl 'http://localhost:8000/api/logs?limit=200&offset=0'
-curl 'http://localhost:8000/api/traces?limit=100'
+curl http://localhost:8000/loki/api/v1/labels
 ```
 
-## TUI Keybindings
+Get label values:
 
-| Key   | Action                                                                         |
-| ----- | ------------------------------------------------------------------------------ |
-| Tab   | Toggle layout context between Logs and Traces views                            |
-| j / k | Navigate viewport row selection downwards / upwards                            |
-| h / l | Swap element focus between side panel tree and primary data table              |
-| Enter | Toggle target label filtering scope / Explode runtime span execution hierarchy |
-| /     | Focus search context console overlay for raw message matching                  |
-| 1 - 6 | Toggle visualization display rules for specific log severities (TRACE..FATAL)  |
-| L     | Lock viewport tail orientation to real-time incoming records (Live Tail)       |
-| s     | Reverse sort order constraints index                                           |
-| q     | Terminate session and exit to terminal shell                                   |
+```http
+GET /loki/api/v1/label/{name}/values
+```
+
+---
+
+### Live tail
+
+Real-time log streaming:
+
+```
+WS /loki/api/v1/tail
+```
+
+Compatible with Grafana Live Tail.
+
+---
+
+# OpenTelemetry Tracing
+
+Pygrab accepts OTLP traces.
+
+Example:
+
+```bash
+curl -X POST \
+http://localhost:8000/api/otlp/v1/traces \
+-H "Content-Type: application/json" \
+-d @trace.json
+```
+
+---
+
+# Storage
+
+Pygrab uses ClickHouse as the analytical storage engine.
+
+Benefits:
+
+- Fast analytical queries
+- Efficient log storage
+- Scalable ingestion pipeline
+- Optimized for observability workloads
+
+---
