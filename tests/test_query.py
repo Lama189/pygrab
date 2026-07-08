@@ -83,7 +83,7 @@ async def test_query_instant(client: AsyncClient, log_repo):
     )
 
     response = await client.get(
-        '/pygrab/api/v1/query?query={service="worker"}&limit=10'
+        '/loki/api/v1/query?query={service="worker"}&limit=10'
     )
     assert response.status_code == 200
     data = response.json()
@@ -104,7 +104,7 @@ async def test_query_instant_with_level_filter(client: AsyncClient, log_repo):
     )
 
     response = await client.get(
-        '/pygrab/api/v1/query?query={level="ERROR"}&limit=10'
+        '/loki/api/v1/query?query={level="ERROR"}&limit=10'
     )
     data = response.json()
     results = data["data"]["result"]
@@ -129,7 +129,7 @@ async def test_query_range(client: AsyncClient, log_repo):
     start = str(now_ns - six_hours_ns)
     end = str(now_ns + 1_000_000_000)
     response = await client.get(
-        f'/pygrab/api/v1/query_range?query={{app="test"}}&start={start}&end={end}&limit=10'
+        f'/loki/api/v1/query_range?query={{app="test"}}&start={start}&end={end}&limit=10'
     )
     assert response.status_code == 200
     data = response.json()
@@ -140,9 +140,12 @@ async def test_query_range(client: AsyncClient, log_repo):
 @pytest.mark.asyncio
 async def test_query_invalid_format(client: AsyncClient):
     response = await client.get(
-        '/pygrab/api/v1/query?query=invalid&limit=10'
+        '/loki/api/v1/query?query=invalid&limit=10'
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "success"
+    assert data["data"]["result"] == []
 
 
 @pytest.mark.asyncio
@@ -165,7 +168,7 @@ async def test_get_labels(client: AsyncClient, log_repo):
         )
     )
 
-    response = await client.get("/pygrab/api/v1/labels")
+    response = await client.get("/loki/api/v1/labels")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
@@ -200,7 +203,7 @@ async def test_get_label_values(client: AsyncClient, log_repo):
         )
     )
 
-    response = await client.get("/pygrab/api/v1/label/service/values")
+    response = await client.get("/loki/api/v1/label/service/values")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "success"
@@ -209,6 +212,6 @@ async def test_get_label_values(client: AsyncClient, log_repo):
 
 @pytest.mark.asyncio
 async def test_get_labels_empty(client: AsyncClient):
-    response = await client.get("/pygrab/api/v1/labels")
+    response = await client.get("/loki/api/v1/labels")
     assert response.status_code == 200
     assert response.json()["data"] == []

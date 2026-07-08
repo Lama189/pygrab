@@ -1,7 +1,6 @@
 import json
-from typing import Any
 
-from app.application.schemas.otlp import ExportTraceServiceRequest, OtlpKeyValue, OtlpSpan
+from app.application.schemas.otlp import ExportTraceServiceRequest, OtlpKeyValue
 from app.domain.models import SpanModel, SpanEventModel
 
 

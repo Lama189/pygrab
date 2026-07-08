@@ -1,14 +1,10 @@
-import asyncio
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.application.collector.parser import LogParser
-from app.application.collector.worker import DockerLogsCollector
-from app.application.dto.logs import LogEntryDTO
 from app.application.interfaces import ILogRepository, ITracerepository
 from app.application.logs.buffer import LogBuffer
 from app.application.logs.service import LogsService
@@ -16,8 +12,7 @@ from app.application.logs.worker import LogFlushWorker
 from app.application.query.parser import LogQLParser
 from app.application.query.service import LokiQueryService
 from app.application.traces.service import TraceService
-from app.domain.enums import LogLevel
-from app.domain.models import LogEntry, LogQueryParams, SpanModel, SpanEventModel
+from app.domain.models import LogEntry, LogQueryParams, SpanModel
 from app.main import app
 
 
@@ -31,15 +26,15 @@ class FakeLogRepository(ILogRepository):
     async def fetch(self, params: LogQueryParams) -> list[LogEntry]:
         result = list(self.logs)
         if params.start_time_ns:
-            result = [l for l in result if l.timestamp >= params.start_time_ns]
+            result = [entry for entry in result if entry.timestamp >= params.start_time_ns]
         if params.end_time_ns:
-            result = [l for l in result if l.timestamp <= params.end_time_ns]
+            result = [entry for entry in result if entry.timestamp <= params.end_time_ns]
         if params.matchers:
             for matcher in params.matchers:
                 if matcher.name == "level":
-                    result = [l for l in result if l.level.value == matcher.value]
+                    result = [entry for entry in result if entry.level.value == matcher.value]
                 else:
-                    result = [l for l in result if l.labels.get(matcher.name) == matcher.value]
+                    result = [entry for entry in result if entry.labels.get(matcher.name) == matcher.value]
         result = result[: params.limit]
         if params.direction.value == "backward":
             result.reverse()

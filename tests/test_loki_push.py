@@ -2,8 +2,7 @@ import time
 import pytest
 from httpx import AsyncClient
 
-from app.domain.enums import LogLevel
-from app.domain.models import LogEntry, SpanModel
+from app.domain.models import SpanModel
 
 
 @pytest.mark.asyncio
@@ -21,7 +20,7 @@ async def test_loki_push(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -29,7 +28,7 @@ async def test_loki_push(client: AsyncClient):
 async def test_loki_push_empty(client: AsyncClient):
     payload = {"streams": []}
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -49,7 +48,7 @@ async def test_loki_push_multiple_streams(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 
@@ -67,7 +66,7 @@ async def test_loki_push_with_trace_id(client: AsyncClient):
         ]
     }
 
-    response = await client.post("/pygrab/api/v1/push", json=payload)
+    response = await client.post("/loki/api/v1/push", json=payload)
     assert response.status_code == 204
 
 

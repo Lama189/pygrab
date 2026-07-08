@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timezone
-from typing import cast
 
 from app.domain.models import LogEntry, LogQueryParams
 from app.domain.enums import MatchOp, LogLevel, Direction

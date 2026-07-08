@@ -1,5 +1,4 @@
 import queue
-import threading
 from contextlib import contextmanager
 
 from app.infrastructure.clickhouse.factory import ClickHouseClientFactory
